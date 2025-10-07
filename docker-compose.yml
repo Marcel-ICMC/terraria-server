@@ -1,0 +1,47 @@
+services:
+  terraria-server:
+    image: hexlo/terraria-server-docker:latest
+    container_name: terraria-server
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    ports:
+      - 7777:7777
+    volumes:
+      - type: bind
+        source: ./Worlds
+        target: /root/.local/share/Terraria/Worlds
+      - type: bind
+        source: ./logs
+        target: /logs
+    environment:
+      - world=/root/.local/share/Terraria/Worlds/${WORLD_FILENAME}
+      - password=${WORLD_PASSWORD}
+    command: /bin/sh -c "terraria-server | tee /logs/terraria.log"
+  duckdns:
+    image: lscr.io/linuxserver/duckdns:latest
+    container_name: duckdns
+    network_mode: host # optional
+    environment:
+      - SUBDOMAINS=${DUCK_DNS_SUBDOMAIN}
+      - TOKEN=${DUCK_DNS_TOKEN}
+    restart: unless-stopped
+  terraria-log-writer:
+    image: docker:cli
+    container_name: terraria-log-writer
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./logs:/logs
+      - ./terraria_logger.sh:/terraria_logger.sh
+    entrypoint: [ "/terraria_logger.sh" ]
+    depends_on:
+      - terraria-server
+    restart: unless-stopped
+  terraria-bot:
+    build: terraria_bot/
+    volumes:
+      - ./logs/current.log:/current.log
+    depends_on:
+      - terraria-log-writer
+    environment:
+      - WEBHOOK_URL=${WEBHOOK_URL}
