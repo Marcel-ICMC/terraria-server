@@ -1,5 +1,6 @@
-logs/
-Worlds/
+logs/*
+Worlds/*
+!Worlds/.gitkeep
 
 terraria_bot/deps/
 terraria_bot/_build/
